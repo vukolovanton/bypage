@@ -1,11 +1,11 @@
 import "./App.css";
-import TextContainer from "./layout/TextContainer";
+import Reader from "./layout/Reader";
 
 function App() {
 
   return (
     <main>
-      <TextContainer />
+      <Reader />
     </main>
   );
 }
