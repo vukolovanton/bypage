@@ -1,4 +1,3 @@
-import "./App.css";
 import Reader from "./layout/Reader";
 
 function App() {
