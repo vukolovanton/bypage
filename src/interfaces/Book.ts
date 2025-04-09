@@ -1,8 +1,8 @@
-export interface Root {
-  stylesheet: any[]
-  description: Description
-  body: Body[]
-  binary: Binary[]
+export interface Book {
+  stylesheet: any[];
+  description: Description;
+  body: Body[];
+  binary: any[];
 }
 
 export interface Description {
@@ -91,10 +91,4 @@ export interface Section {
   epigraph: any[]
   $value: any[]
   section: any[]
-}
-
-export interface Book {
-  "@id": string
-  "@content-type": string
-  $text: string
 }
