@@ -2,6 +2,7 @@ import { useState } from "react";
 import { invoke } from '@tauri-apps/api/core';
 import { Book } from "@/interfaces/Book";
 import { Button } from "./ui/button";
+import { toast } from "sonner"
 import { open } from '@tauri-apps/plugin-dialog';
 
 export function InputFile() {
@@ -17,20 +18,22 @@ export function InputFile() {
   }
 
   async function parseBook(filePath: string) {
-    setLoading(true);
-    const book: Book | Error = await invoke("open_file", {
-      path: filePath
-    });
-    setLoading(false);
-    if (book instanceof Error) {
-      console.log("Error")
+    try {
+      setLoading(true);
+      const book: Book = await invoke("open_file", {
+        path: filePath
+      });
+      toast.success("Book has been added to the library");
+    } catch (err) {
+      toast.error((err as String));
+    } finally {
+      setLoading(false);
     }
-    console.log(book)
   }
 
   return (
     <div className="grid w-full max-w-sm items-center gap-1.5">
-      <Button disabled={loading} onClick={handleNativeFileDialog}>{loading ? 'Loading...' : 'Import'}</Button>
+      <Button disabled={loading} onClick={handleNativeFileDialog}>Import</Button>
     </div>
   )
 }
