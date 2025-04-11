@@ -1,12 +1,12 @@
 use fb2::FictionBook;
 use quick_xml::de::from_str;
-use tauri::Manager;
+use std::path::Path;
 // use reqwest::{self};
 // use serde_json::json;
 use std::{
     // error::Error,
     fs::File,
-    io::{BufReader, Read, Seek, SeekFrom, Write},
+    io::{BufReader, Read, Seek},
 };
 mod structures;
 
@@ -46,28 +46,25 @@ fn open_file(path: String) -> Result<FictionBook, String> {
     }
 }
 
+#[tauri::command]
+fn validate_paths(paths: Vec<String>) -> Vec<String> {
+    let mut results = Vec::new();
+    for path in paths {
+        let exists = Path::new(&path).exists();
+        if exists {
+            results.push(path);
+        }
+    }
+    results
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![open_file])
+        .invoke_handler(tauri::generate_handler![open_file, validate_paths])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
-
-// fn write_file(handle: tauri::AppHandle) -> String {
-//     let app_local_data_dir = handle.path().app_local_data_dir().unwrap();
-//     let file = std::fs::File::open(&app_local_data_dir).unwrap();
-//     let mut file = match File::create("Book.json") {
-//         Ok(f) => f,
-//         Err(e) => panic!("Error while creating a file: {}", e),
-//     };
-//     if let Err(e) = file.write_all(converted.as_bytes()) {
-//         println!("Error while writing to file: {}", e);
-//     } else {
-//         println!("Done writing to disk");
-//     }
-//     String::new()
-// }

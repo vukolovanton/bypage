@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { open } from '@tauri-apps/plugin-dialog';
 import { load } from '@tauri-apps/plugin-store';
 import { getBookTitle } from "@/lib/utils";
+import { IStore } from "@/interfaces/Store";
 
 export function ImportFile() {
   const [loading, setLoading] = useState(false);
@@ -19,22 +20,15 @@ export function ImportFile() {
     parseBook(filePath);
   }
 
-  async function saveBookAddressToStore({ title, author, filePath }: { title: string, author: string, filePath: string }) {
-    const store = await load('store.json', { autoSave: false });
-    // await store.set(filePath, {
-    //   value: {
-    //     title,
-    //     author
-    //   }
-    // });
-    // const val = await store.get<{
-    //   value: {
-    //     title: string,
-    //     author: string
-    //   }
-    // }>(filePath);
-    const temp = await store.values()
-    console.log(temp);
+  async function saveBookAddressToStore({ title, author, filePath }: IStore) {
+    const store = await load('bypage-store.json', { autoSave: false });
+    await store.set(filePath, {
+      value: {
+        title,
+        author,
+        filePath
+      }
+    });
   }
 
   async function parseBook(filePath: string) {

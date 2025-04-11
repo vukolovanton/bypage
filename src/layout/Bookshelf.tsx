@@ -1,12 +1,29 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { invoke } from '@tauri-apps/api/core';
 import { load } from '@tauri-apps/plugin-store';
 import BookPreview from "./BookPreview";
+import { IStore } from "@/interfaces/Store";
 
 export default function Bookshelf() {
+  const [library, setLibray] = useState<{ value: IStore }[]>([]);
+
   async function loadStore() {
-    const store = await load('store.json', { autoSave: false });
-    const temp = await store.values()
-    console.log(temp);
+    const store = await load('bypage-store.json', { autoSave: false });
+    const values: Array<{ value: IStore }> = await store.values();
+    checkBooksAvailability(values);
+  }
+
+  async function checkBooksAvailability(values: Array<{ value: IStore }>) {
+    const paths = collectPaths(values);
+    const validPaths: Array<string> = await invoke("validate_paths", {
+      paths,
+    });
+    const filtered = values.filter(item => validPaths.includes(item.value.filePath));
+    setLibray(filtered);
+  }
+
+  function collectPaths(store: Array<{ value: IStore }>) {
+    return store.map(s => s.value.filePath);
   }
 
   useEffect(() => {
@@ -15,9 +32,9 @@ export default function Bookshelf() {
 
   return (
     <div className="min-h-screen flex flex-wrap gap-4 p-12">
-      <BookPreview />
-      <BookPreview />
-      <BookPreview />
+      {
+        library.map(book => <BookPreview book={book.value} key={book.value.filePath} />)
+      }
     </div>
   )
 }
