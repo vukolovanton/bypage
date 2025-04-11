@@ -7,9 +7,11 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { load } from '@tauri-apps/plugin-store';
 import { getBookTitle } from "@/lib/utils";
 import { IStore } from "@/interfaces/Store";
+import useActiveBookStore from "@/state/useActiveBookStore";
 
 export function ImportFile() {
   const [loading, setLoading] = useState(false);
+  const triggerLatestUpdate = useActiveBookStore(state => state.triggerLatestUpdate);
 
   async function handleNativeFileDialog() {
     const filePath = await open({
@@ -29,6 +31,7 @@ export function ImportFile() {
         filePath
       }
     });
+    triggerLatestUpdate();
   }
 
   async function parseBook(filePath: string) {

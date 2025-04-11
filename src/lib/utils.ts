@@ -16,3 +16,26 @@ export function getBookTitle(book: Book) {
   }
   return { title, author }
 }
+
+export const isObject = obj => {
+  return Object.prototype.toString.call(obj) === '[object Object]';
+};
+
+export function flattenBook(book: Book | null) {
+  if (!book) return [];
+  const result: Array<{ tag: string, content?: InlineContent[] }> = [];
+  book.body.forEach(body => {
+    body.section.forEach(section => {
+      section.$value.forEach((innerSection: SectionContent | string) => {
+        if (isObject(innerSection)) {
+          const key = Reflect.ownKeys(innerSection)[0] as string;
+          result.push({
+            tag: key,
+            content: innerSection[key].$value
+          })
+        }
+      })
+    })
+  });
+  return result;
+}

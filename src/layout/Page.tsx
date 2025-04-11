@@ -1,9 +1,7 @@
-import { LOREM_IPSUM } from "@/lib/utils"
-
-export default function Page() {
+export default function Page({ content }: { content: JSX.Element[] }) {
   return (
     <div className="p-8">
-      {LOREM_IPSUM}
+      {content}
     </div>
   )
 }

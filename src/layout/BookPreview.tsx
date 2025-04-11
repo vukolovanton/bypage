@@ -1,9 +1,27 @@
 import { TypographyH3 } from "@/components/TypographyH3";
 import { Book } from "@/interfaces/Book";
 import { IStore } from "@/interfaces/Store";
+import { isObject } from "@/lib/utils";
 import useActiveBookStore from "@/state/useActiveBookStore";
 import { invoke } from '@tauri-apps/api/core';
 import { useNavigate } from "react-router";
+
+interface SectionContent {
+  [key: string]: {
+    $value: string[];
+  };
+}
+
+type InlineContent = string | TagElement;
+
+interface TagElement {
+  [tagName: string]: TagValue[];
+}
+
+interface TagValue {
+  href?: string;
+  $value: InlineContent[];
+}
 
 export default function BookPreview({ book }: { book: IStore }) {
   let navigate = useNavigate();
@@ -16,6 +34,7 @@ export default function BookPreview({ book }: { book: IStore }) {
     setActiveBook(currentBook);
     navigate("/reader");
   }
+
   return (
     <div onClick={handleBookClick} className="border-2 rounded-md p-4 h-60 w-44 shadow-sm cursor-pointer hover:shadow-xl text-balance break-words">
       <TypographyH3>{book.title}</TypographyH3>

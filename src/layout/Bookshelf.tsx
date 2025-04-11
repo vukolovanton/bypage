@@ -3,9 +3,11 @@ import { invoke } from '@tauri-apps/api/core';
 import { load } from '@tauri-apps/plugin-store';
 import BookPreview from "./BookPreview";
 import { IStore } from "@/interfaces/Store";
+import useActiveBookStore from "@/state/useActiveBookStore";
 
 export default function Bookshelf() {
   const [library, setLibray] = useState<{ value: IStore }[]>([]);
+  const latestUpdate = useActiveBookStore(state => state.latesUpdate);
 
   async function loadStore() {
     const store = await load('bypage-store.json', { autoSave: false });
@@ -28,7 +30,7 @@ export default function Bookshelf() {
 
   useEffect(() => {
     loadStore();
-  }, []);
+  }, [latestUpdate]);
 
   return (
     <div className="min-h-screen flex flex-wrap gap-4 p-12">
