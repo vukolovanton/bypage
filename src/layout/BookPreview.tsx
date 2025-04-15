@@ -1,27 +1,9 @@
 import { TypographyH3 } from "@/components/TypographyH3";
 import { Book } from "@/interfaces/Book";
 import { IStore } from "@/interfaces/Store";
-import { isObject } from "@/lib/utils";
 import useActiveBookStore from "@/state/useActiveBookStore";
 import { invoke } from '@tauri-apps/api/core';
 import { useNavigate } from "react-router";
-
-interface SectionContent {
-  [key: string]: {
-    $value: string[];
-  };
-}
-
-type InlineContent = string | TagElement;
-
-interface TagElement {
-  [tagName: string]: TagValue[];
-}
-
-interface TagValue {
-  href?: string;
-  $value: InlineContent[];
-}
 
 export default function BookPreview({ book }: { book: IStore }) {
   let navigate = useNavigate();

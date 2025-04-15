@@ -1,4 +1,5 @@
 import { Book } from "@/interfaces/Book"
+import { InlineContent, SectionContent } from "@/interfaces/InlineContent"
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -17,7 +18,7 @@ export function getBookTitle(book: Book) {
   return { title, author }
 }
 
-export const isObject = obj => {
+export const isObject = (obj: Object) => {
   return Object.prototype.toString.call(obj) === '[object Object]';
 };
 
@@ -28,7 +29,7 @@ export function flattenBook(book: Book | null) {
     body.section.forEach(section => {
       section.$value.forEach((innerSection: SectionContent | string) => {
         if (isObject(innerSection)) {
-          const key = Reflect.ownKeys(innerSection)[0] as string;
+          const key = Reflect.ownKeys(innerSection as SectionContent)[0] as string;
           result.push({
             tag: key,
             content: innerSection[key].$value
