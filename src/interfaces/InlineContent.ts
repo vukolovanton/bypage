@@ -1,8 +1,10 @@
 export interface SectionContent {
   [key: string]: {
-    $value: string[];
+    $value: MixedConrent[];
   };
 }
+
+export type MixedConrent = string | TagElement;
 
 export type InlineContent = string | TagElement | TagValue;
 
@@ -12,5 +14,5 @@ export interface TagElement {
 
 export interface TagValue {
   href?: string;
-  $value: InlineContent[];
+  $value: string[];
 }

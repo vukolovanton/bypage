@@ -1,3 +1,5 @@
+import { SectionContent } from "./InlineContent";
+
 export interface Book {
   stylesheet: any[];
   description: Description;
@@ -89,6 +91,6 @@ export interface Body {
 
 export interface Section {
   epigraph: any[]
-  $value: any[]
+  $value: SectionContent[]
   section: any[]
 }
