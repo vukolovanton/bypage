@@ -1,16 +1,26 @@
 import { Book } from "@/interfaces/Book"
-import { MixedContent } from "@/interfaces/InlineContent";
 import { isObject } from "@/lib/utils";
 import React, { useState } from "react";
 
 function useFB2Reader(book: Book) {
   const [pageIndex, setPageIndex] = useState(0);
+  const [startIndex, setStartIndex] = useState(0);
+  const [translatedChunks, setTranslatedChunks] = useState<Array<string>>([]);
+
   const flattenBook = flatten(book);
   const processedJSX = processDataToJSX(flattenBook);
   const pages = generatePagesJSX(processedJSX, 5);
 
+  React.useEffect(() => {
+    if (Array.isArray(flattenBook) && flattenBook.length > 0) {
+      console.log('123')
+    }
+  }, [flattenBook])
+
+  const isComplete = startIndex >= flattenBook.length;
+
   function flatten(book: Book) {
-    const result: MixedContent[] = [];
+    const result: string[] = [];
     book.body.forEach(body => {
       body.section.forEach(section => {
         if (Array.isArray(section.$value) && section.$value.length > 0) {
@@ -21,8 +31,18 @@ function useFB2Reader(book: Book) {
                   if (typeof v.$value === 'string') {
                     result.push(v.$value)
                   } else if (Array.isArray(v.$value)) {
-                    v.$value.forEach(item =>
-                      result.push(item)
+                    v.$value.forEach(item => {
+                      if (typeof item === 'string') {
+                        result.push(item)
+                      } else {
+                        if (item["emphasis"] && Array.isArray(item["empasis"]) && item["empasis"][0]) {
+                          result.push(item["emphasis"][0].$value[0]);
+                        }
+                        if (item["a"] && Array.isArray(item["a"]) && item["a"][0]) {
+                          result.push(item["a"][0].$value[0]);
+                        }
+                      }
+                    }
                     )
                   }
                 }
@@ -35,7 +55,7 @@ function useFB2Reader(book: Book) {
     return result;
   }
 
-  function processDataToJSX(dataArr: MixedContent[]) {
+  function processDataToJSX(dataArr: string[]) {
     return dataArr.map((item, index) => {
       if (typeof item === 'string') {
         return <p className="p-1" key={index}>{item}</p>;
@@ -77,10 +97,41 @@ function useFB2Reader(book: Book) {
     }
   };
 
+
+  async function translate(text: any) {
+    const response = await fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        "model": "gemma3:12b",
+        "prompt": `Translate this text from english to russian: "${text}"`,
+        "stream": false
+      })
+    });
+    const data = await response.json();
+  }
+
+  const handleSlice = () => {
+    if (isComplete) {
+      console.log("Already complete. No action taken.");
+      return;
+    }
+    console.log(`Button clicked. Current start index: ${startIndex}`);
+    const endIndex = startIndex + 5;
+    const chunk = flattenBook.slice(startIndex, endIndex);
+    setStartIndex(endIndex);
+    setTranslatedChunks(prev => [...prev, ...chunk]);
+  };
+
   return {
     nextPage,
     prevPage,
-    pages,
+    pages: {
+      original: pages,
+      translated: pages
+    },
     pageIndex
   }
 }

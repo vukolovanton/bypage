@@ -10,8 +10,8 @@ export default function AdvancedFB2Reader() {
   return (
     <>
       <section className="grid grid-cols-2 gap-4 p-4">
-        <Page content={pages[pageIndex]} />
-        <Page content={pages[pageIndex]} />
+        <Page content={pages.original[pageIndex]} />
+        <Page content={pages.translated[pageIndex]} />
       </section>
       <Controls pageNumber={pageIndex} prevPage={prevPage} nextPage={nextPage} />
     </>
