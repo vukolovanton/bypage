@@ -1,10 +1,10 @@
 export interface SectionContent {
   [key: string]: {
-    $value: MixedConrent[];
+    $value: MixedContent[];
   };
 }
 
-export type MixedConrent = string | TagElement;
+export type MixedContent = string | TagElement;
 
 export type InlineContent = string | TagElement | TagValue;
 

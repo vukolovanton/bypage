@@ -1,4 +1,4 @@
-export default function Page({ content }: { content: JSX.Element[] }) {
+export default function Page({ content }: { content: (JSX.Element | null)[] }) {
   return (
     <div className="p-8">
       {content}

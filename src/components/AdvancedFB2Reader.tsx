@@ -1,21 +1,20 @@
 import { Book } from "@/interfaces/Book";
-import { MixedConrent, TagElement, TagValue } from "@/interfaces/InlineContent";
+import { MixedContent, TagElement, TagValue } from "@/interfaces/InlineContent";
 import Page from "@/layout/Page";
-import { isObject, LOREM_IPSUM } from "@/lib/utils";
+import { isObject } from "@/lib/utils";
 import useActiveBookStore from "@/state/useActiveBookStore";
-import { useState } from "react";
+import React, { useState } from "react";
 
 export default function AdvancedFB2Reader() {
   const [pageIndex, setPageIndex] = useState(0);
   const book = useActiveBookStore((state) => state.book)!;
   const flattenBook = flatten(book);
-  const processed = processData(flattenBook);
-  const pages = generatePages(processed, 200);
-  console.log(pages)
+  const processedJSX = processDataToJSX(flattenBook);
+  const pages = generatePagesJSX(processedJSX, 2);
 
 
   function flatten(book: Book) {
-    const result: MixedConrent[] = [];
+    const result: MixedContent[] = [];
     book.body.forEach(body => {
       body.section.forEach(section => {
         if (Array.isArray(section.$value) && section.$value.length > 0) {
@@ -40,36 +39,46 @@ export default function AdvancedFB2Reader() {
     return result;
   }
 
-  function processData(dataArr: MixedConrent[]) {
-    return dataArr.map((item, i) => {
+  function processDataToJSX(dataArr: MixedContent[]) {
+    return dataArr.map((item, index) => {
       if (typeof item === 'string') {
-        return item;
+        return <span key={index}>{item}</span>;
       }
-      // Process objects - this example assumes only one key per object.
-      if (typeof item === 'object') {
-        const tag = Object.keys(item)[0];
-        const contentArr = item[tag]; // e.g., the array under "strong"
-        // Assuming one nested object with "$value"
-        if (Array.isArray(contentArr)) {
-          // For simplicity: join values from the nested structure.
-          const innerObj = contentArr[0];
-          if (innerObj && innerObj.$value) {
-            return `<${tag}>${innerObj.$value.join(" ")}</${tag}>`;
-          }
+      if (typeof item === 'object' && item !== null) {
+        const tagName = Object.keys(item)[0];
+        const content = item[tagName];
+        if (Array.isArray(content)) {
+          const innerContent = content.map((innerItem, _) => {
+            if (innerItem && innerItem.$value && Array.isArray(innerItem.$value)) {
+              return innerItem.$value.join(" ");
+            }
+            return null;
+          }).join(" ");
+          return React.createElement(tagName, { key: index }, innerContent);
         }
       }
-      return '';
-    }).join(" "); // Join everything into one string (or you can choose to keep an array for more control)
+      return null;
+    });
   };
 
-  function generatePages(text: string, maxCharsPerPage: number) {
+  function generatePagesJSX(nodes: (JSX.Element | null)[], nodesPerPage: number) {
     const pages = [];
-    let start = 0;
-    while (start < text.length) {
-      pages.push(text.substring(start, start + maxCharsPerPage));
-      start += maxCharsPerPage;
+    for (let i = 0; i < nodes.length; i += nodesPerPage) {
+      pages.push(nodes.slice(i, i + nodesPerPage));
     }
     return pages;
+  };
+
+  const nextPage = () => {
+    if (pageIndex < pages.length - 1) {
+      setPageIndex(pageIndex + 1);
+    }
+  };
+
+  const prevPage = () => {
+    if (pageIndex > 0) {
+      setPageIndex(pageIndex - 1);
+    }
   };
 
 
