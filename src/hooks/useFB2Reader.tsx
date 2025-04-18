@@ -1,6 +1,7 @@
 import { Book } from "@/interfaces/Book"
 import { isObject } from "@/lib/utils";
 import React, { useMemo, useState } from "react";
+import { invoke } from '@tauri-apps/api/core';
 
 function flatten(book: Book) {
   console.log('FLATTEN')
@@ -86,6 +87,17 @@ function useFB2Reader(book: Book) {
       setPageIndex(pageIndex - 1);
     }
   };
+
+  async function load(flattenBook: string[]) {
+    const response = await invoke("send_request_to_ollama", {
+      flattenBook
+    });
+    console.log(response)
+  }
+
+  React.useEffect(() => {
+    load(flattenBook)
+  }, [flattenBook])
 
   return {
     nextPage,

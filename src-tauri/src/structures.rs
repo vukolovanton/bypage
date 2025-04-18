@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 #[derive(Serialize)]
 pub struct RequestPayload {
@@ -35,4 +36,22 @@ pub struct OllamaStreamResponse {
     prompt_eval_duration: i64,
     eval_count: i32,
     eval_duration: i64,
+}
+
+#[derive(Error, Debug)]
+pub enum ProcessingError {
+    #[error("Network or API request failed")]
+    RequestError(#[from] reqwest::Error),
+
+    #[error("Failed to serialize data for API request")]
+    SerializationError(#[from] serde_json::Error),
+
+    #[error("API returned an error status: {status}")]
+    ApiError { status: reqwest::StatusCode },
+
+    #[error("Task failed to execute: {0}")]
+    JoinError(#[from] tokio::task::JoinError),
+
+    #[error("An underlying task failed")]
+    TaskError(#[source] Box<dyn std::error::Error + Send + Sync>),
 }

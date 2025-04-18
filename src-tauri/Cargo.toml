@@ -28,3 +28,5 @@ fb2 = "0.4.4"
 reqwest = { version = "0.12", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 tauri-plugin-dialog = "2"
+thiserror = "1.0"
+futures = "0.3"
