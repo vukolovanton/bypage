@@ -1,10 +1,10 @@
 import { Book } from "@/interfaces/Book"
 import { isObject } from "@/lib/utils";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 
 function flatten(book: Book) {
-  console.log('FLATTEN')
   const result: string[] = [];
   book.body.forEach(body => {
     body.section.forEach(section => {
@@ -88,15 +88,20 @@ function useFB2Reader(book: Book) {
     }
   };
 
-  async function load(flattenBook: string[]) {
-    const response = await invoke("send_request_to_ollama", {
-      flattenBook
+  async function translate(book: string[]) {
+    const translated = await invoke("translate_book", {
+      book
     });
-    console.log(response)
   }
 
-  React.useEffect(() => {
-    load(flattenBook)
+  listen<any>('translate', (event) => {
+    console.log(
+      `translate ${event.payload} bytes from ${event.payload}`
+    );
+  });
+
+  useEffect(() => {
+    translate(flattenBook);
   }, [flattenBook])
 
   return {

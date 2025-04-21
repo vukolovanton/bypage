@@ -55,3 +55,8 @@ pub enum ProcessingError {
     #[error("An underlying task failed")]
     TaskError(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct FlattenBook {
+    pub data: Vec<String>,
+}

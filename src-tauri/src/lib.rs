@@ -1,102 +1,15 @@
 use fb2::FictionBook;
 use quick_xml::de::from_str;
 use reqwest::{self, Client};
+use std::error;
 use std::path::Path;
 use std::{
     fs::File,
     io::{BufReader, Read, Seek},
 };
-use structures::{OllamaResponse, ProcessingError};
+use structures::{FlattenBook, OllamaResponse, ProcessingError};
+use tauri::{AppHandle, Emitter};
 mod structures;
-
-pub async fn process_strings_in_chunks(
-    input_strings: Vec<String>,
-    api_url: String,
-    target_chunk_length: usize,
-    client: &Client,
-) -> Result<Vec<String>, ProcessingError> {
-    // --- 1. Chunking Logic ---
-    let mut chunks: Vec<Vec<String>> = Vec::new();
-    let mut current_chunk: Vec<String> = Vec::new();
-    let mut current_chunk_len: usize = 0;
-
-    for s in input_strings.into_iter() {
-        let s_len = s.len();
-        if current_chunk.is_empty() || (current_chunk_len + s_len <= target_chunk_length) {
-            current_chunk_len += s_len;
-            current_chunk.push(s);
-        } else {
-            if !current_chunk.is_empty() {
-                chunks.push(current_chunk);
-            }
-            current_chunk = vec![s];
-            current_chunk_len = s_len;
-        }
-    }
-    if !current_chunk.is_empty() {
-        chunks.push(current_chunk);
-    }
-    println!("Created {} chunks.", chunks.len());
-    // --- 2. API Request Logic (Concurrent) ---
-    let mut results = Vec::new();
-    for chunk in chunks {
-        println!("Results: {:?}", results);
-        let client = client.clone();
-        let combined_string = chunk.join(" ");
-        let payload = serde_json::json!({
-            "model": "gemma3:12b",
-            "prompt": format!("Translate this text from English to Russian. Answer only with translated text: {:?}", combined_string),
-            "stream": false
-        });
-        println!("Working on chunk. Payload: {:?}", payload);
-        let response = client
-            .post(&api_url)
-            .json(&payload)
-            .send()
-            .await
-            .map_err(|e| e.to_string())
-            .expect("Error");
-
-        let response_text = response
-            .text()
-            .await
-            .map_err(|e| e.to_string())
-            .expect("Error");
-        println!("Raw response text: {}", response_text);
-
-        let json: Result<OllamaResponse, _> = serde_json::from_str(&response_text);
-
-        let some = match json {
-            Ok(parsed) => {
-                println!("Parsed response OK");
-                parsed
-            }
-            Err(e) => {
-                eprintln!("Failed to parse JSON: {}", e);
-                eprintln!("Response text was: {}", response_text);
-                return Err(ProcessingError::SerializationError(e));
-            }
-        };
-        println!("{:?}", some);
-        results.push(some.response);
-    }
-    Ok(results)
-}
-
-#[tauri::command]
-async fn send_request_to_ollama(flatten_book: Vec<String>) -> Result<Vec<String>, String> {
-    let client = Client::builder()
-        .build()
-        .expect("Failed to build reqwest client");
-    let api_endpoint = "http://localhost:11434/api/generate".to_string();
-    let target_length = 1000;
-    println!("Starting processing...");
-
-    match process_strings_in_chunks(flatten_book, api_endpoint, target_length, &client).await {
-        Ok(output) => Ok(output),
-        Err(e) => Err(format!("Error: {}", e)),
-    }
-}
 
 fn read_file_to_string(file: &File) -> Result<String, std::io::Error> {
     let mut content = String::new();
@@ -146,6 +59,77 @@ fn validate_paths(paths: Vec<String>) -> Vec<String> {
     results
 }
 
+fn process_into_chunks(flatten: Vec<String>, max_bytes: usize) -> Vec<Vec<String>> {
+    let mut chunks = Vec::new();
+    let mut current = Vec::new();
+    let mut current_size = 0;
+
+    for s in flatten {
+        let len = s.len();
+        if !current.is_empty() && current_size + len > max_bytes {
+            chunks.push(current);
+            current = Vec::new();
+            current_size = 0;
+        }
+        current_size += len;
+        current.push(s);
+    }
+
+    if !current.is_empty() {
+        chunks.push(current);
+    }
+
+    chunks
+}
+
+async fn send_request_to_backend(
+    chunks: Vec<Vec<String>>,
+    client: &Client,
+) -> Result<Vec<String>, ProcessingError> {
+    let mut result: Vec<String> = Vec::new();
+    for chunk in chunks {
+        let combined_string = chunk.join(" ");
+        let payload = serde_json::json!({
+            "model": "gemma3:12b",
+            "prompt": format!("Translate this text from English to Russian. Answer only with translated text: {}", combined_string),
+            "stream": false
+        });
+        println!("Sending request>>>");
+        let response = client
+            .post("http://localhost:11434/api/generate")
+            .json(&payload)
+            .send()
+            .await;
+        match response {
+            Ok(body) => {
+                let body = body.text().await?;
+                let parsed: OllamaResponse = serde_json::from_str(&body)?;
+                result.push(parsed.response);
+                println!("Done working on a chunk");
+            }
+            Err(e) => println!("Request failed with status: {:?}", e),
+        }
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+async fn translate_book(app: AppHandle, book: Vec<String>) -> Vec<String> {
+    app.emit("translate", "pickle").unwrap();
+    let chunks = process_into_chunks(book, 1000);
+    let client = reqwest::Client::new();
+    let temp = send_request_to_backend(chunks, &client).await;
+    let translated = match temp {
+        Ok(result) => result,
+        Err(e) => {
+            println!("Error : {:?}", e);
+            Vec::new()
+        }
+    };
+    app.emit("translate", "rick").unwrap();
+    translated
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -155,7 +139,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             open_file,
             validate_paths,
-            send_request_to_ollama,
+            translate_book
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
