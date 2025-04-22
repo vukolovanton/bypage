@@ -85,8 +85,8 @@ async fn send_request_to_backend(
     chunks: Vec<Vec<String>>,
     client: &Client,
     app: &AppHandle,
-) -> Result<Vec<String>, ProcessingError> {
-    let mut result: Vec<String> = Vec::new();
+) -> Result<Vec<Vec<String>>, ProcessingError> {
+    let mut result: Vec<Vec<String>> = Vec::new();
     for (index, chunk) in chunks.iter().enumerate() {
         app.emit(
             "translate_progress",
@@ -96,7 +96,7 @@ async fn send_request_to_backend(
             },
         )
         .unwrap();
-        let combined_string = chunk.join(" ");
+        let combined_string = chunk.join("\n");
         println!("Chunk legth: {}", combined_string.len());
         println!("Chunk: {:?}", chunk);
         let payload = serde_json::json!({
@@ -114,7 +114,12 @@ async fn send_request_to_backend(
             Ok(body) => {
                 let body = body.text().await?;
                 let parsed: OllamaResponse = serde_json::from_str(&body)?;
-                result.push(parsed.response);
+                let translated_lines: Vec<String> = parsed
+                    .response
+                    .lines()
+                    .map(|line| line.trim().to_string())
+                    .collect();
+                result.push(translated_lines);
                 println!("Done working on a chunk");
             }
             Err(e) => println!("Request failed with status: {:?}", e),
@@ -124,9 +129,9 @@ async fn send_request_to_backend(
 }
 
 #[tauri::command]
-async fn translate_book(app: AppHandle, book: Vec<String>) -> Vec<String> {
+async fn translate_book(app: AppHandle, book: Vec<String>) -> Vec<Vec<String>> {
     app.emit("translate_progress", "pickle").unwrap();
-    let chunks = process_into_chunks(book, 4000);
+    let chunks = process_into_chunks(book, 3000);
     let client = reqwest::Client::new();
     let temp = send_request_to_backend(chunks, &client, &app).await;
     let translated = match temp {

@@ -95,10 +95,15 @@ function useFB2Reader(book: Book, path: string) {
     const data = JSON.stringify({
       data: translated
     });
-    await mkdir('translated', { baseDir: BaseDirectory.AppData, recursive: true })
-    await writeTextFile(`translated/${filename}.json`, data, {
-      baseDir: BaseDirectory.AppConfig,
-    });
+    try {
+      await mkdir('translated', { baseDir: BaseDirectory.AppData, recursive: true })
+      await writeTextFile(`translated/${filename}.json`, data, {
+        baseDir: BaseDirectory.AppConfig,
+      });
+      toast.success("Translated book successfully saved to a file")
+    } catch (err) {
+      toast.error(JSON.stringify(err));
+    }
   }
 
   async function translate(book: string[]) {
@@ -111,13 +116,12 @@ function useFB2Reader(book: Book, path: string) {
       const processedJSX = processDataToJSX(json.data);
       const pages = generatePagesJSX(processedJSX, 5);
       setTranslatedPages(pages);
-      console.log({ isTranslated, translated, json })
-
       return;
     }
     const translated: string[] = await invoke("translate_book", {
       book
     });
+    console.log({ book, translated })
     const processedJSX = processDataToJSX(translated);
     const pages = generatePagesJSX(processedJSX, 5);
     setTranslatedPages(pages);
