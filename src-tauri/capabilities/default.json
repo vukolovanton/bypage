@@ -9,6 +9,31 @@
     "core:default",
     "opener:default",
     "store:default",
-    "dialog:default"
+    "dialog:default",
+    "fs:allow-mkdir",
+    "fs:allow-exists",
+    "fs:allow-app-write-recursive",
+    "fs:allow-app-write",
+    "fs:allow-appdata-write-recursive",
+    "fs:allow-appdata-read",
+    "fs:allow-appdata-write",
+    "fs:scope-appdata-recursive",
+    "fs:scope-appdata",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        {
+          "path": "$APPDATA/*"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        {
+          "path": "$APPDATA/translated/*"
+        }
+      ]
+    }
   ]
 }

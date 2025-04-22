@@ -1,8 +1,9 @@
 import { Book } from "@/interfaces/Book"
-import { isObject } from "@/lib/utils";
+import { getFileName, isObject } from "@/lib/utils";
 import React, { useEffect, useMemo, useState } from "react";
 import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { toast } from "sonner"
+import { readTextFile, BaseDirectory, mkdir, writeTextFile, exists } from '@tauri-apps/plugin-fs';
 
 function flatten(book: Book) {
   const result: string[] = [];
@@ -70,8 +71,9 @@ function generatePagesJSX(nodes: (JSX.Element | null)[], nodesPerPage: number) {
   return pages;
 };
 
-function useFB2Reader(book: Book) {
+function useFB2Reader(book: Book, path: string) {
   const [pageIndex, setPageIndex] = useState(0);
+  const [translatedPages, setTranslatedPages] = useState<(JSX.Element | null)[][]>([]);
   const flattenBook = useMemo(() => flatten(book), []);
   const processedJSX = useMemo(() => processDataToJSX(flattenBook), []);
   const pages = generatePagesJSX(processedJSX, 5);
@@ -88,17 +90,46 @@ function useFB2Reader(book: Book) {
     }
   };
 
-  async function translate(book: string[]) {
-    const translated = await invoke("translate_book", {
-      book
+  async function writeTranslatedBookToAFile(translated: string[]) {
+    const filename = getFileName(path);
+    const data = JSON.stringify({
+      data: translated
+    });
+    await mkdir('translated', { baseDir: BaseDirectory.AppData, recursive: true })
+    await writeTextFile(`translated/${filename}.json`, data, {
+      baseDir: BaseDirectory.AppConfig,
     });
   }
 
-  listen<any>('translate', (event) => {
-    console.log(
-      `translate ${event.payload} bytes from ${event.payload}`
-    );
-  });
+  async function translate(book: string[]) {
+    const { isTranslated, fullPath } = await checkIfBookAlreadyTranslated();
+    if (isTranslated) {
+      const translated = await readTextFile(fullPath, {
+        baseDir: BaseDirectory.AppConfig,
+      });
+      const json = JSON.parse(translated);
+      const processedJSX = processDataToJSX(json.data);
+      const pages = generatePagesJSX(processedJSX, 5);
+      setTranslatedPages(pages);
+      console.log({ isTranslated, translated, json })
+
+      return;
+    }
+    const translated: string[] = await invoke("translate_book", {
+      book
+    });
+    const processedJSX = processDataToJSX(translated);
+    const pages = generatePagesJSX(processedJSX, 5);
+    setTranslatedPages(pages);
+    await writeTranslatedBookToAFile(translated);
+  }
+
+  async function checkIfBookAlreadyTranslated() {
+    const filename = getFileName(path);
+    const fullPath = `translated/${filename}.json`;
+    const isTranslated = await exists(fullPath, { baseDir: BaseDirectory.AppData });
+    return { isTranslated, fullPath };
+  }
 
   useEffect(() => {
     translate(flattenBook);
@@ -109,7 +140,7 @@ function useFB2Reader(book: Book) {
     prevPage,
     pages: {
       original: pages,
-      translated: pages
+      translated: translatedPages
     },
     pageIndex
   }

@@ -8,12 +8,14 @@ import { useNavigate } from "react-router";
 export default function BookPreview({ book }: { book: IStore }) {
   let navigate = useNavigate();
   const setActiveBook = useActiveBookStore(state => state.setActiveBook);
+  const setActivePath = useActiveBookStore(state => state.setActivePath);
 
   async function handleBookClick() {
     const currentBook: Book = await invoke("open_file", {
       path: book.filePath
     });
     setActiveBook(currentBook);
+    setActivePath(book.filePath);
     navigate("/reader");
   }
 

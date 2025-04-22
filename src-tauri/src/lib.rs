@@ -1,13 +1,12 @@
 use fb2::FictionBook;
 use quick_xml::de::from_str;
 use reqwest::{self, Client};
-use std::error;
 use std::path::Path;
 use std::{
     fs::File,
     io::{BufReader, Read, Seek},
 };
-use structures::{FlattenBook, OllamaResponse, ProcessingError};
+use structures::{OllamaResponse, ProcessingError, TranslateProgress};
 use tauri::{AppHandle, Emitter};
 mod structures;
 
@@ -85,10 +84,21 @@ fn process_into_chunks(flatten: Vec<String>, max_bytes: usize) -> Vec<Vec<String
 async fn send_request_to_backend(
     chunks: Vec<Vec<String>>,
     client: &Client,
+    app: &AppHandle,
 ) -> Result<Vec<String>, ProcessingError> {
     let mut result: Vec<String> = Vec::new();
-    for chunk in chunks {
+    for (index, chunk) in chunks.iter().enumerate() {
+        app.emit(
+            "translate_progress",
+            TranslateProgress {
+                total: chunks.len(),
+                current: index,
+            },
+        )
+        .unwrap();
         let combined_string = chunk.join(" ");
+        println!("Chunk legth: {}", combined_string.len());
+        println!("Chunk: {:?}", chunk);
         let payload = serde_json::json!({
             "model": "gemma3:12b",
             "prompt": format!("Translate this text from English to Russian. Answer only with translated text: {}", combined_string),
@@ -115,10 +125,10 @@ async fn send_request_to_backend(
 
 #[tauri::command]
 async fn translate_book(app: AppHandle, book: Vec<String>) -> Vec<String> {
-    app.emit("translate", "pickle").unwrap();
-    let chunks = process_into_chunks(book, 1000);
+    app.emit("translate_progress", "pickle").unwrap();
+    let chunks = process_into_chunks(book, 4000);
     let client = reqwest::Client::new();
-    let temp = send_request_to_backend(chunks, &client).await;
+    let temp = send_request_to_backend(chunks, &client, &app).await;
     let translated = match temp {
         Ok(result) => result,
         Err(e) => {
@@ -126,13 +136,14 @@ async fn translate_book(app: AppHandle, book: Vec<String>) -> Vec<String> {
             Vec::new()
         }
     };
-    app.emit("translate", "rick").unwrap();
+    app.emit("translate_progress", "rick").unwrap();
     translated
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_opener::init())

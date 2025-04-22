@@ -5,7 +5,6 @@ use thiserror::Error;
 pub struct RequestPayload {
     pub model: String,
     pub prompt: String,
-    // pub stream: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -17,7 +16,7 @@ pub struct OllamaResponse {
     pub context: Vec<i32>,
     pub total_duration: i64,
     pub load_duration: i64,
-    pub prompt_eval_count: i8,
+    pub prompt_eval_count: i32,
     pub prompt_eval_duration: i64,
     pub eval_count: i32,
     pub eval_duration: i64,
@@ -59,4 +58,11 @@ pub enum ProcessingError {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FlattenBook {
     pub data: Vec<String>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TranslateProgress {
+    pub total: usize,
+    pub current: usize,
 }

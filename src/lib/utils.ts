@@ -40,3 +40,9 @@ export function flattenBook(book: Book | null) {
   });
   return result;
 }
+
+export function getFileName(path: String): string {
+  const fileWithExt = path.split('/').pop();
+  const fileNameWithoutExt = fileWithExt?.split('.').slice(0, -1).join('.') || '';
+  return fileNameWithoutExt;
+}
