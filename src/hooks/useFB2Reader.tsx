@@ -21,7 +21,7 @@ function flatten(book: Book) {
                     if (typeof item === 'string') {
                       result.push(item)
                     } else {
-                      if (item["emphasis"] && Array.isArray(item["empasis"]) && item["empasis"][0]) {
+                      if (item["emphasis"] && Array.isArray(item["emphasis"]) && item["emphasis"][0]) {
                         result.push(item["emphasis"][0].$value[0]);
                       }
                       if (item["a"] && Array.isArray(item["a"]) && item["a"][0]) {

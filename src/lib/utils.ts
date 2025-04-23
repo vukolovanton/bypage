@@ -13,7 +13,7 @@ export function getBookTitle(book: Book) {
   const title = book.description["title-info"]["book-title"].$text;
   let author = '';
   for (let iter_author of book.description["title-info"].author) {
-    author = author + iter_author["first-name"].$text + iter_author["last-name"].$text;
+    author = author + iter_author["first-name"].$text + " " + iter_author["last-name"].$text;
   }
   return { title, author }
 }
