@@ -121,7 +121,7 @@ function useFB2Reader(book: Book, path: string) {
     const translated: string[] = await invoke("translate_book", {
       book
     });
-    console.log({ book, translated })
+    console.log({ flattenBook: book, translated });
     const processedJSX = processDataToJSX(translated);
     const pages = generatePagesJSX(processedJSX, 5);
     setTranslatedPages(pages);

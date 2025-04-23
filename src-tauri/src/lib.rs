@@ -85,8 +85,8 @@ async fn send_request_to_backend(
     chunks: Vec<Vec<String>>,
     client: &Client,
     app: &AppHandle,
-) -> Result<Vec<Vec<String>>, ProcessingError> {
-    let mut result: Vec<Vec<String>> = Vec::new();
+) -> Result<Vec<String>, ProcessingError> {
+    let mut result: Vec<String> = Vec::new();
     for (index, chunk) in chunks.iter().enumerate() {
         app.emit(
             "translate_progress",
@@ -97,11 +97,9 @@ async fn send_request_to_backend(
         )
         .unwrap();
         let combined_string = chunk.join("\n");
-        println!("Chunk legth: {}", combined_string.len());
-        println!("Chunk: {:?}", chunk);
         let payload = serde_json::json!({
             "model": "gemma3:12b",
-            "prompt": format!("Translate this text from English to Russian. Answer only with translated text: {}", combined_string),
+            "prompt": format!("You are professional translator. Translate this text from English to Russian. Answer only with translated text: {}", combined_string),
             "stream": false
         });
         println!("Sending request>>>");
@@ -119,7 +117,9 @@ async fn send_request_to_backend(
                     .lines()
                     .map(|line| line.trim().to_string())
                     .collect();
-                result.push(translated_lines);
+                for line in translated_lines {
+                    result.push(line);
+                }
                 println!("Done working on a chunk");
             }
             Err(e) => println!("Request failed with status: {:?}", e),
@@ -129,8 +129,10 @@ async fn send_request_to_backend(
 }
 
 #[tauri::command]
-async fn translate_book(app: AppHandle, book: Vec<String>) -> Vec<Vec<String>> {
+async fn translate_book(app: AppHandle, book: Vec<String>) -> Vec<String> {
     app.emit("translate_progress", "pickle").unwrap();
+    println!("Book: {:?}", book);
+    // let mut result = Vec::new();
     let chunks = process_into_chunks(book, 3000);
     let client = reqwest::Client::new();
     let temp = send_request_to_backend(chunks, &client, &app).await;
@@ -142,6 +144,7 @@ async fn translate_book(app: AppHandle, book: Vec<String>) -> Vec<Vec<String>> {
         }
     };
     app.emit("translate_progress", "rick").unwrap();
+    println!("Translated: {:?}", translated);
     translated
 }
 
