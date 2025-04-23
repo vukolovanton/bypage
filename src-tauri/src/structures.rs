@@ -66,3 +66,28 @@ pub struct TranslateProgress {
     pub total: usize,
     pub current: usize,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct OllamaModels {
+    pub models: Vec<ModelsResponse>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ModelsResponse {
+    pub name: String,
+    pub model: Option<String>,
+    pub modified_at: String,
+    pub size: u64,
+    pub digest: String,
+    pub details: Option<ModelDetails>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ModelDetails {
+    pub parent_model: String,
+    pub format: String,
+    pub family: String,
+    pub families: Vec<String>,
+    pub parameter_size: String,
+    pub quantization_level: String,
+}

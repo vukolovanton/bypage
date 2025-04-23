@@ -8,7 +8,6 @@ export default function Navigation() {
   let navigate = useNavigate();
   const book = useActiveBookStore(state => state.book)!;
   const { title } = getBookTitle(book);
-  console.log(book)
 
   function goBack() {
     navigate("/");

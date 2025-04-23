@@ -6,7 +6,10 @@ use std::{
     fs::File,
     io::{BufReader, Read, Seek},
 };
-use structures::{OllamaResponse, ProcessingError, TranslateProgress};
+use structures::{
+    ModelsResponse, OllamaModels, OllamaResponse, ProcessingError, TranslateProgress,
+};
+use tauri::ipc::IpcResponse;
 use tauri::{AppHandle, Emitter};
 mod structures;
 
@@ -77,7 +80,7 @@ fn process_into_chunks(flatten: Vec<String>, max_bytes: usize) -> Vec<Vec<String
     if !current.is_empty() {
         chunks.push(current);
     }
-
+    println!("CHUNKS: {:?}", chunks);
     chunks
 }
 
@@ -85,6 +88,8 @@ async fn send_request_to_backend(
     chunks: Vec<Vec<String>>,
     client: &Client,
     app: &AppHandle,
+    model: String,
+    language: String,
 ) -> Result<Vec<String>, ProcessingError> {
     let mut result: Vec<String> = Vec::new();
     for (index, chunk) in chunks.iter().enumerate() {
@@ -98,8 +103,8 @@ async fn send_request_to_backend(
         .unwrap();
         let combined_string = chunk.join("\n");
         let payload = serde_json::json!({
-            "model": "gemma3:12b",
-            "prompt": format!("You are professional translator. Translate this text from English to Russian. Answer only with translated text: {}", combined_string),
+            "model": model,
+            "prompt": format!("You are professional translator. Translate this text from English to {}. Answer only with translated text: {}", language, combined_string),
             "stream": false
         });
         println!("Sending request>>>");
@@ -129,13 +134,19 @@ async fn send_request_to_backend(
 }
 
 #[tauri::command]
-async fn translate_book(app: AppHandle, book: Vec<String>) -> Vec<String> {
+async fn translate_book(
+    app: AppHandle,
+    book: Vec<String>,
+    model: String,
+    language: String,
+) -> Vec<String> {
     app.emit("translate_progress", "pickle").unwrap();
-    println!("Book: {:?}", book);
-    // let mut result = Vec::new();
+    println!("Starting process...");
+    let model = "gemma3:12b".to_string();
+    let language = "Russian".to_string();
     let chunks = process_into_chunks(book, 3000);
     let client = reqwest::Client::new();
-    let temp = send_request_to_backend(chunks, &client, &app).await;
+    let temp = send_request_to_backend(chunks, &client, &app, model, language).await;
     let translated = match temp {
         Ok(result) => result,
         Err(e) => {
@@ -148,6 +159,20 @@ async fn translate_book(app: AppHandle, book: Vec<String>) -> Vec<String> {
     translated
 }
 
+#[tauri::command]
+async fn get_model_list() -> Result<Vec<Option<String>>, String> {
+    let client = reqwest::Client::new();
+    let response = client
+        .get("http://localhost:11434/api/tags")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    let body = response.text().await.map_err(|e| e.to_string())?;
+    let parsed: OllamaModels = serde_json::from_str(&body).map_err(|e| e.to_string())?;
+    let collected: Vec<Option<String>> = parsed.models.iter().map(|m| m.model.clone()).collect();
+    Ok(collected)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -158,7 +183,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             open_file,
             validate_paths,
-            translate_book
+            translate_book,
+            get_model_list
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -2,11 +2,14 @@ import { useFB2Reader } from "@/hooks/useFB2Reader";
 import { Controls } from "@/layout/Controls";
 import Page from "@/layout/Page";
 import useActiveBookStore from "@/state/useActiveBookStore";
+import useSettingsState from "@/state/useSettings";
 
 export default function AdvancedFB2Reader() {
   const book = useActiveBookStore((state) => state.book)!;
   const path = useActiveBookStore((state) => state.path)!;
-  const { pages, prevPage, nextPage, pageIndex } = useFB2Reader(book, path);
+  const model = useSettingsState(state => state.model);
+  const language = useSettingsState(state => state.language);
+  const { pages, prevPage, nextPage, pageIndex } = useFB2Reader(book, path, model, language);
 
   return (
     <>

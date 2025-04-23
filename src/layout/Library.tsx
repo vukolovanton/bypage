@@ -2,6 +2,7 @@ import { ImportFile } from "@/components/ImportFile";
 import { TypographyH1 } from "@/components/TypographyH1";
 import { Toaster } from "@/components/ui/sonner";
 import Bookshelf from "./Bookshelf";
+import Settings from "@/components/Settings";
 
 export default function Library() {
 
@@ -10,7 +11,8 @@ export default function Library() {
       <TypographyH1>
         Library
       </TypographyH1>
-      <div>
+      <div className="flex gap-4">
+        <Settings />
         <ImportFile />
       </div>
     </div >

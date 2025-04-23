@@ -22,10 +22,18 @@ function flatten(book: Book) {
                       result.push(item)
                     } else {
                       if (item["emphasis"] && Array.isArray(item["emphasis"]) && item["emphasis"][0]) {
-                        result.push(item["emphasis"][0].$value[0]);
+                        if (typeof item["emphasis"][0].$value[0] == 'string') {
+                          result.push(item["emphasis"][0].$value[0]);
+                        } else {
+                          // @ts-ignore
+                          result.push(item["emphasis"][0].$value[0]["a"][0].$value[0])
+                        }
                       }
                       if (item["a"] && Array.isArray(item["a"]) && item["a"][0]) {
                         result.push(item["a"][0].$value[0]);
+                      }
+                      if (item["strong"] && Array.isArray(item["strong"]) && item["strong"][0]) {
+                        result.push(item["strong"][0].$value[0]);
                       }
                     }
                   }
@@ -71,7 +79,7 @@ function generatePagesJSX(nodes: (JSX.Element | null)[], nodesPerPage: number) {
   return pages;
 };
 
-function useFB2Reader(book: Book, path: string) {
+function useFB2Reader(book: Book, path: string, model: string, language: string) {
   const [pageIndex, setPageIndex] = useState(0);
   const [translatedPages, setTranslatedPages] = useState<(JSX.Element | null)[][]>([]);
   const flattenBook = useMemo(() => flatten(book), []);
@@ -119,13 +127,15 @@ function useFB2Reader(book: Book, path: string) {
       return;
     }
     const translated: string[] = await invoke("translate_book", {
-      book
+      book,
+      model,
+      language
     });
-    console.log({ flattenBook: book, translated });
     const processedJSX = processDataToJSX(translated);
     const pages = generatePagesJSX(processedJSX, 5);
     setTranslatedPages(pages);
     await writeTranslatedBookToAFile(translated);
+
   }
 
   async function checkIfBookAlreadyTranslated() {
