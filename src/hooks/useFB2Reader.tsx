@@ -1,5 +1,5 @@
 import { Book } from "@/interfaces/Book"
-import { getFileName, isObject } from "@/lib/utils";
+import { getFileName, isObject, notEmptyString, sanitizeString } from "@/lib/utils";
 import React, { useEffect, useMemo, useState } from "react";
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from "sonner"
@@ -14,26 +14,37 @@ function flatten(book: Book) {
           if (isObject(sectionValue)) {
             Object.entries(sectionValue).forEach(([_, v]) => {
               if (v && v?.$value) {
-                if (typeof v.$value === 'string') {
+                if (typeof v.$value === 'string' && v.$value !== '') {
                   result.push(v.$value)
                 } else if (Array.isArray(v.$value)) {
                   v.$value.forEach(item => {
                     if (typeof item === 'string') {
-                      result.push(item)
+                      if (notEmptyString(item)) {
+                        result.push(sanitizeString(item));
+                      }
                     } else {
                       if (item["emphasis"] && Array.isArray(item["emphasis"]) && item["emphasis"][0]) {
                         if (typeof item["emphasis"][0].$value[0] == 'string') {
-                          result.push(item["emphasis"][0].$value[0]);
+                          if (notEmptyString(item["emphasis"][0].$value[0])) {
+                            result.push(sanitizeString(item["emphasis"][0].$value[0]));
+                          }
                         } else {
                           // @ts-ignore
-                          result.push(item["emphasis"][0].$value[0]["a"][0].$value[0])
+                          if (item["emphasis"][0].$value[0]["a"][0].$value[0] !== '') {
+                            // @ts-ignore
+                            result.push(sanitizeString(item["emphasis"][0].$value[0]["a"][0].$value[0]))
+                          }
                         }
                       }
                       if (item["a"] && Array.isArray(item["a"]) && item["a"][0]) {
-                        result.push(item["a"][0].$value[0]);
+                        if (item["a"][0].$value[0] !== '') {
+                          result.push(sanitizeString(item["a"][0].$value[0]));
+                        }
                       }
                       if (item["strong"] && Array.isArray(item["strong"]) && item["strong"][0]) {
-                        result.push(item["strong"][0].$value[0]);
+                        if (item["strong"][0].$value[0] !== '') {
+                          result.push(sanitizeString(item["strong"][0].$value[0]));
+                        }
                       }
                     }
                   }
@@ -85,7 +96,6 @@ function useFB2Reader(book: Book, path: string, model: string, language: string)
   const flattenBook = useMemo(() => flatten(book), []);
   const processedJSX = useMemo(() => processDataToJSX(flattenBook), []);
   const pages = generatePagesJSX(processedJSX, 5);
-
   const nextPage = () => {
     if (pageIndex < pages.length - 1) {
       setPageIndex(pageIndex + 1);

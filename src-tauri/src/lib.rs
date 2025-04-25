@@ -6,10 +6,7 @@ use std::{
     fs::File,
     io::{BufReader, Read, Seek},
 };
-use structures::{
-    ModelsResponse, OllamaModels, OllamaResponse, ProcessingError, TranslateProgress,
-};
-use tauri::ipc::IpcResponse;
+use structures::{OllamaModels, OllamaResponse, ProcessingError, TranslateProgress};
 use tauri::{AppHandle, Emitter};
 mod structures;
 
@@ -80,7 +77,6 @@ fn process_into_chunks(flatten: Vec<String>, max_bytes: usize) -> Vec<Vec<String
     if !current.is_empty() {
         chunks.push(current);
     }
-    println!("CHUNKS: {:?}", chunks);
     chunks
 }
 
@@ -123,7 +119,9 @@ async fn send_request_to_backend(
                     .map(|line| line.trim().to_string())
                     .collect();
                 for line in translated_lines {
-                    result.push(line);
+                    if !line.is_empty() {
+                        result.push(line);
+                    }
                 }
                 println!("Done working on a chunk");
             }
@@ -140,10 +138,7 @@ async fn translate_book(
     model: String,
     language: String,
 ) -> Vec<String> {
-    app.emit("translate_progress", "pickle").unwrap();
     println!("Starting process...");
-    let model = "gemma3:12b".to_string();
-    let language = "Russian".to_string();
     let chunks = process_into_chunks(book, 3000);
     let client = reqwest::Client::new();
     let temp = send_request_to_backend(chunks, &client, &app, model, language).await;
@@ -154,8 +149,6 @@ async fn translate_book(
             Vec::new()
         }
     };
-    app.emit("translate_progress", "rick").unwrap();
-    println!("Translated: {:?}", translated);
     translated
 }
 

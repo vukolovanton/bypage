@@ -46,3 +46,11 @@ export function getFileName(path: String): string {
   const fileNameWithoutExt = fileWithExt?.split('.').slice(0, -1).join('.') || '';
   return fileNameWithoutExt;
 }
+
+export function notEmptyString(str: string) {
+  return str.trim() !== ''
+}
+
+export function sanitizeString(str: string) {
+  return str.replace(/\n/g, ' ');
+}
